@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriTrack - Your Daily Intake Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #1e293b;
+        }
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            background-color: #2563eb; /* Blue-600 */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8; /* Blue-700 */
+        }
+        .btn-secondary {
+            background-color: #475569; /* Slate-600 */
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #334155; /* Slate-700 */
+        }
+        .tab-button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #475569; /* Slate-600 */
+        }
+        .tab-button.active {
+            border-bottom-color: #2563eb; /* Blue-600 */
+            color: #2563eb; /* Blue-600 */
+        }
+        input[type="text"], input[type="number"], select {
+            border: 1px solid #cbd5e1; /* Slate-300 */
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background-color: white;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: #2563eb; /* Blue-600 */
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+            outline: none;
+        }
+        .progress-bar-bg {
+            background-color: #e2e8f0; /* Slate-200 */
+            border-radius: 9999px;
+            height: 12px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+        }
+        .nutrient-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        .item-list::-webkit-scrollbar { width: 8px; }
+        .item-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .item-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .item-list::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 25px; /* Increased padding */
+            border-radius: 12px;
+            width: 90%;
+            max-width: 550px; /* Slightly wider for more fields */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 15px; right: 20px; /* Adjusted */
+            font-size: 28px; /* Slightly larger */
+            font-weight: bold;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        .modal-close-btn:hover { color: #1e293b; }
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-blue-600">NutriTrack</h1>
+            <div class="flex items-center space-x-4">
+                <span id="currentDate" class="text-sm text-slate-500"></span>
+                <button id="settingsBtn" class="p-2 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" title="Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-slate-600">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.646.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 1.905c-.007.379.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.333.183-.582.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.759 6.759 0 0 1 0-1.905c.007-.379-.137-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">Log Your Meal</h2>
+                    <form id="foodForm" class="space-y-4">
+                        <div>
+                            <label for="foodItem">Food Item</label>
+                            <input type="text" id="foodItem" name="foodItem" placeholder="e.g., Apple, medium" required>
+                        </div>
+                        <div>
+                            <label for="calories">Calories (kcal)</label>
+                            <input type="number" id="calories" name="calories" min="0" placeholder="e.g., 95" required>
+                        </div>
+                        <div>
+                            <label for="sodium">Sodium (mg)</label>
+                            <input type="number" id="sodium" name="sodium" min="0" placeholder="e.g., 1" required>
+                        </div>
+                        <div>
+                            <label for="sugar">Sugar (g)</label>
+                            <input type="number" id="sugar" name="sugar" min="0" placeholder="e.g., 19" required>
+                        </div>
+                        <button type="submit" class="btn-primary w-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 inline-block mr-1">
+                                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                            </svg>
+                            Add Item
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">Today's Intake</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-medium text-slate-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nutrient-icon inline-block text-orange-500">
+                                        <path fill-rule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm6.39-2.908a.75.75 0 0 1 .308.638l-.001 2.25h2.003a.75.75 0 0 1 0 1.5H8.699l.001 2.25a.75.75 0 0 1-1.5 0l-.001-2.25H5.197a.75.75 0 0 1 0-1.5h2.002l-.001-2.25a.75.75 0 0 1 1.19-.638Z" clip-rule="evenodd" />
+                                    </svg>Calories</span>
+                                <span class="text-sm text-slate-500"><span id="todayCalories">0</span> / <span id="goalCalories">2000</span> kcal</span>
+                            </div>
+                            <div class="progress-bar-bg"><div id="progressCalories" class="progress-bar bg-orange-500" style="width: 0%;"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-medium text-slate-600">
+                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nutrient-icon inline-block text-sky-500">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.83-8.065a2.5 2.5 0 0 0-3.16-2.34L9.17 9.94a2.5 2.5 0 0 0 3.16 2.34l1.5-2.345Zm-8.13.78a2.5 2.5 0 0 0 2.34 3.16l2.345-1.5a2.5 2.5 0 0 0-2.34-3.16l-2.345 1.5Z" clip-rule="evenodd" />
+                                    </svg>Sodium</span>
+                                <span class="text-sm text-slate-500"><span id="todaySodium">0</span> / <span id="goalSodium">2300</span> mg</span>
+                            </div>
+                            <div class="progress-bar-bg"><div id="progressSodium" class="progress-bar bg-sky-500" style="width: 0%;"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-medium text-slate-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nutrient-icon inline-block text-pink-500">
+                                        <path d="m12.54 2.246 1.306 4.033h4.295c.477 0 .869.392.859.87-.01.478-.402.859-.87.859H13.88l-2.246 6.937a.86.86 0 0 1-1.618.147L8.666 9h- физических.15a.86.86 0 0 1-.859-.87c0-.477.392-.859.859-.859h4.295L10.65 3.237a.86.86 0 0 1 1.518-.62l.372-.371Z" />
+                                    </svg>Sugar</span>
+                                <span class="text-sm text-slate-500"><span id="todaySugar">0</span> / <span id="goalSugar">30</span> g</span>
+                            </div>
+                            <div class="progress-bar-bg"><div id="progressSugar" class="progress-bar bg-pink-500" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">Today's Log</h2>
+                    <div id="loggedItemsList" class="max-h-60 overflow-y-auto space-y-2 item-list pr-2">
+                        <p class="text-slate-500 text-sm">No items logged yet for today.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="card">
+                    <div class="flex border-b border-slate-200 mb-4">
+                        <button class="tab-button active" data-tab="daily">Daily View</button>
+                        <button class="tab-button" data-tab="weekly">Weekly</button>
+                        <button class="tab-button" data-tab="monthly">Monthly</button>
+                        <button class="tab-button" data-tab="yearly">Yearly</button>
+                    </div>
+
+                    <div id="chartContainer">
+                        <div id="dailyChartView" class="tab-content">
+                            <h3 class="text-lg font-medium mb-3 text-slate-600">Daily Log Details</h3>
+                            <p class="text-slate-600">View your logged items and summary on the left. This section can be expanded with more daily insights in future versions.</p>
+                            <div id="dailyLogFullList" class="mt-4 max-h-96 overflow-y-auto item-list pr-2">
+                                </div>
+                        </div>
+                        <div id="weeklyChartView" class="tab-content hidden">
+                            <h3 class="text-lg font-medium mb-3 text-slate-600">Weekly Progress</h3>
+                            <canvas id="weeklyChart" height="150"></canvas>
+                        </div>
+                        <div id="monthlyChartView" class="tab-content hidden">
+                            <h3 class="text-lg font-medium mb-3 text-slate-600">Monthly Trends</h3>
+                            <canvas id="monthlyChart" height="150"></canvas>
+                        </div>
+                        <div id="yearlyChartView" class="tab-content hidden">
+                            <h3 class="text-lg font-medium mb-3 text-slate-600">Yearly Overview</h3>
+                            <canvas id="yearlyChart" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content relative">
+            <span id="closeSettingsModal" class="modal-close-btn">&times;</span>
+            <h2 class="text-xl font-semibold mb-6 text-slate-700">Your Profile & Goals</h2>
+            
+            <div class="mb-6">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="manualGoalsToggle" class="sr-only peer">
+                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <span class="ms-3 text-sm font-medium text-gray-700">Set Goals Manually</span>
+                </label>
+            </div>
+
+            <form id="profileForm" class="space-y-4">
+                <div id="autoCalculateSection">
+                    <p class="text-sm text-slate-500 mb-4">Your daily calorie goal will be estimated based on these details. Sodium and sugar goals are general recommendations (2300mg Sodium, 30g Sugar).</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="age">Age (years)</label>
+                            <input type="number" id="age" name="age" min="1" placeholder="e.g., 30" required>
+                        </div>
+                        <div>
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label for="weight">Weight (kg)</label>
+                            <input type="number" id="weight" name="weight" step="0.1" min="1" placeholder="e.g., 70" required>
+                        </div>
+                        <div>
+                            <label for="height">Height (cm)</label>
+                            <input type="number" id="height" name="height" min="1" placeholder="e.g., 175" required>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label for="activityLevel">Activity Level</label>
+                        <select id="activityLevel" name="activityLevel" required>
+                            <option value="">Select Activity Level</option>
+                            <option value="1.2">Sedentary (little or no exercise)</option>
+                            <option value="1.375">Lightly active (light exercise 1-3 days/wk)</option>
+                            <option value="1.55">Moderately active (moderate exercise 3-5 days/wk)</option>
+                            <option value="1.725">Very active (hard exercise 6-7 days/wk)</option>
+                            <option value="1.9">Extra active (very hard exercise/physical job)</option>
+                        </select>
+                    </div>
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p class="text-sm text-blue-700">Estimated Daily Calories: <strong id="estimatedCaloriesDisplay">N/A</strong> kcal</p>
+                    </div>
+                </div>
+
+                <div id="manualGoalsSection" class="hidden space-y-4">
+                    <p class="text-sm text-slate-500 mb-4">Set your daily nutrient goals manually:</p>
+                    <div>
+                        <label for="manualCalories">Daily Calorie Goal (kcal)</label>
+                        <input type="number" id="manualCalories" name="manualCalories" min="500" max="10000" placeholder="e.g., 2000" class="w-full">
+                    </div>
+                    <div>
+                        <label for="manualSodium">Daily Sodium Goal (mg)</label>
+                        <input type="number" id="manualSodium" name="manualSodium" min="0" max="5000" placeholder="e.g., 2300" class="w-full">
+                    </div>
+                    <div>
+                        <label for="manualSugar">Daily Sugar Goal (g)</label>
+                        <input type="number" id="manualSugar" name="manualSugar" min="0" max="100" placeholder="e.g., 30" class="w-full">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" id="cancelProfile" class="btn-secondary bg-slate-200 text-slate-700 hover:bg-slate-300">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Profile & Goals</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="text-center py-8 text-slate-500 text-sm">
+        <p>&copy; <span id="currentYear"></span> NutriTrack. Your health, tracked.</p>
+        <p class="text-xs mt-1">This is a prototype. Data is stored locally in your browser.</p>
+    </footer>
+
+    <script>
+        const getTodayDateString = () => new Date().toISOString().split('T')[0];
+
+        let dailyLogs = JSON.parse(localStorage.getItem('nutriTrackLogs_v2')) || {};
+        let userProfile = JSON.parse(localStorage.getItem('nutriTrackProfile_v2')) || {
+            age: null, gender: null, weight: null, height: null, activityLevel: null
+        };
+        let userGoals = JSON.parse(localStorage.getItem('nutriTrackGoals_v2')) || {
+            calories: 2000, // Default, will be overridden
+            sodium: 2300,   // General recommendation
+            sugar: 30       // General recommendation (WHO: <25-50g/day)
+        };
+
+        const today = getTodayDateString();
+        if (!dailyLogs[today]) {
+            dailyLogs[today] = { items: [], totals: { calories: 0, sodium: 0, sugar: 0 } };
+        }
+
+        const saveData = () => {
+            localStorage.setItem('nutriTrackLogs_v2', JSON.stringify(dailyLogs));
+            localStorage.setItem('nutriTrackProfile_v2', JSON.stringify(userProfile));
+            localStorage.setItem('nutriTrackGoals_v2', JSON.stringify(userGoals));
+        };
+
+        const foodForm = document.getElementById('foodForm');
+        const loggedItemsList = document.getElementById('loggedItemsList');
+        const dailyLogFullListEl = document.getElementById('dailyLogFullList'); // For daily tab
+        const todayCaloriesEl = document.getElementById('todayCalories');
+        const todaySodiumEl = document.getElementById('todaySodium');
+        const todaySugarEl = document.getElementById('todaySugar');
+        const progressCaloriesEl = document.getElementById('progressCalories');
+        const progressSodiumEl = document.getElementById('progressSodium');
+        const progressSugarEl = document.getElementById('progressSugar');
+        const goalCaloriesEl = document.getElementById('goalCalories');
+        const goalSodiumEl = document.getElementById('goalSodium');
+        const goalSugarEl = document.getElementById('goalSugar');
+        const currentDateEl = document.getElementById('currentDate');
+        const currentYearEl = document.getElementById('currentYear');
+
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal'); // Renamed modal ID
+        const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
+        const profileForm = document.getElementById('profileForm'); // Renamed form ID
+        const ageEl = document.getElementById('age');
+        const genderEl = document.getElementById('gender');
+        const weightEl = document.getElementById('weight');
+        const heightEl = document.getElementById('height');
+        const activityLevelEl = document.getElementById('activityLevel');
+        const cancelProfileBtn = document.getElementById('cancelProfile'); // Renamed button
+        const estimatedCaloriesDisplayEl = document.getElementById('estimatedCaloriesDisplay');
+        const manualGoalsToggleEl = document.getElementById('manualGoalsToggle');
+        const manualCaloriesEl = document.getElementById('manualCalories');
+        const manualSodiumEl = document.getElementById('manualSodium');
+        const manualSugarEl = document.getElementById('manualSugar');
+
+
+        let weeklyChartInstance, monthlyChartInstance, yearlyChartInstance;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            currentDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            currentYearEl.textContent = new Date().getFullYear();
+            
+            if (!dailyLogs[today]) {
+                 dailyLogs[today] = { items: [], totals: { calories: 0, sodium: 0, sugar: 0 } };
+            }
+            
+            loadUserProfileAndGoals(); // Load profile first, then calculate and load goals
+            updateTodaySummary();
+            renderLoggedItems();
+            setupTabNavigation();
+            // Initial chart render for other tabs
+            renderWeeklyChart();
+            renderMonthlyChart();
+            renderYearlyChart();
+            document.querySelector('.tab-button[data-tab="daily"]').click(); // Ensure daily tab is active and content shown
+
+            settingsBtn.addEventListener('click', openSettingsModal);
+            closeSettingsModalBtn.addEventListener('click', () => settingsModal.style.display = 'none');
+            cancelProfileBtn.addEventListener('click', () => settingsModal.style.display = 'none');
+            window.addEventListener('click', (event) => {
+                if (event.target == settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+
+            profileForm.addEventListener('submit', handleProfileFormSubmit);
+            
+            // Add event listeners to profile form inputs to update estimated calories display
+            [ageEl, genderEl, weightEl, heightEl, activityLevelEl].forEach(el => {
+                el.addEventListener('input', updateEstimatedCaloriesDisplayInModal);
+            });
+
+            manualGoalsToggleEl.addEventListener('change', () => {
+                const isChecked = manualGoalsToggleEl.checked;
+                document.getElementById('autoCalculateSection').classList.toggle('hidden', isChecked);
+                document.getElementById('manualGoalsSection').classList.toggle('hidden', !isChecked);
+
+                if (isChecked) {
+                    // If switching to manual, set inputs to current goal values
+                    manualCaloriesEl.value = userGoals.calories;
+                    manualSodiumEl.value = userGoals.sodium;
+                    manualSugarEl.value = userGoals.sugar;
+                } else {
+                    // If switching to auto, clear manual inputs
+                    manualCaloriesEl.value = '';
+                    manualSodiumEl.value = '';
+                    manualSugarEl.value = '';
+                }
+            });
+        });
+        
+        function updateEstimatedCaloriesDisplayInModal() {
+            const age = parseInt(ageEl.value);
+            const gender = genderEl.value;
+            const weight = parseFloat(weightEl.value);
+            const height = parseInt(heightEl.value);
+            const activityFactor = parseFloat(activityLevelEl.value);
+
+            if (age && gender && weight && height && activityFactor) {
+                let bmr;
+                if (gender === "male") {
+                    bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+                } else { // female
+                    bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+                }
+                const tdee = Math.round(bmr * activityFactor);
+                estimatedCaloriesDisplayEl.textContent = tdee;
+            } else {
+                estimatedCaloriesDisplayEl.textContent = "N/A";
+            }
+        }
+
+        function openSettingsModal() {
+            if(userProfile.age) ageEl.value = userProfile.age;
+            if(userProfile.gender) genderEl.value = userProfile.gender;
+            if(userProfile.weight) weightEl.value = userProfile.weight;
+            if(userProfile.height) heightEl.value = userProfile.height;
+            if(userProfile.activityLevel) activityLevelEl.value = userProfile.activityLevel;
+            updateEstimatedCaloriesDisplayInModal(); // Update display with current values
+            settingsModal.style.display = 'flex';
+        }
+
+        function calculateAndUpdateCalorieGoal() {
+            if (userProfile.age && userProfile.gender && userProfile.weight && userProfile.height && userProfile.activityLevel) {
+                let bmr;
+                // Mifflin-St Jeor Equation
+                if (userProfile.gender === "male") {
+                    bmr = (10 * userProfile.weight) + (6.25 * userProfile.height) - (5 * userProfile.age) + 5;
+                } else { // female
+                    bmr = (10 * userProfile.weight) + (6.25 * userProfile.height) - (5 * userProfile.age) - 161;
+                }
+                userGoals.calories = Math.round(bmr * userProfile.activityLevel);
+            }
+            // Sodium and sugar goals remain general recommendations unless further logic is added
+            // userGoals.sodium = 2300; 
+            // userGoals.sugar = 30;
+        }
+        
+        function loadUserProfileAndGoals() {
+            // Only calculate calorie goal if not using manual goals
+            const manualGoalsEnabled = manualGoalsToggleEl.checked;
+            if (!manualGoalsEnabled) {
+                calculateAndUpdateCalorieGoal();
+            }
+            
+            // Update UI goal displays
+            goalCaloriesEl.textContent = userGoals.calories;
+            goalSodiumEl.textContent = userGoals.sodium;
+            goalSugarEl.textContent = userGoals.sugar;
+        }
+
+        function handleProfileFormSubmit(e) {
+            e.preventDefault();
+            userProfile.age = parseInt(ageEl.value);
+            userProfile.gender = genderEl.value;
+            userProfile.weight = parseFloat(weightEl.value);
+            userProfile.height = parseInt(heightEl.value);
+            userProfile.activityLevel = parseFloat(activityLevelEl.value);
+
+            // If manual goals are set, update userGoals from manual inputs
+            if (manualGoalsToggleEl.checked) {
+                userGoals.calories = parseInt(manualCaloriesEl.value) || 0;
+                userGoals.sodium = parseInt(manualSodiumEl.value) || 0;
+                userGoals.sugar = parseInt(manualSugarEl.value) || 0;
+            } else {
+                // Otherwise, calculate goals based on profile
+                calculateAndUpdateCalorieGoal();
+            }
+
+            saveData();
+            loadUserProfileAndGoals(); // Reload goals into UI elements
+            updateTodaySummary();    // Recalculate progress bars with new goals
+            settingsModal.style.display = 'none';
+        }
+
+
+        const updateTodaySummary = () => {
+            const currentDayLog = dailyLogs[today];
+            if (!currentDayLog) return;
+
+            todayCaloriesEl.textContent = currentDayLog.totals.calories;
+            todaySodiumEl.textContent = currentDayLog.totals.sodium;
+            todaySugarEl.textContent = currentDayLog.totals.sugar;
+
+            progressCaloriesEl.style.width = `${Math.min(100, (currentDayLog.totals.calories / userGoals.calories) * 100)}%`;
+            progressSodiumEl.style.width = `${Math.min(100, (currentDayLog.totals.sodium / userGoals.sodium) * 100)}%`;
+            progressSugarEl.style.width = `${Math.min(100, (currentDayLog.totals.sugar / userGoals.sugar) * 100)}%`;
+        };
+
+        const renderLoggedItems = () => {
+            const currentDayLog = dailyLogs[today];
+            if (!currentDayLog) return;
+
+            const listContainers = [loggedItemsList, dailyLogFullListEl]; // Update both lists
+
+            listContainers.forEach(container => {
+                if (!container) return;
+                container.innerHTML = ''; // Clear existing items
+                if (currentDayLog.items.length === 0) {
+                    container.innerHTML = '<p class="text-slate-500 text-sm p-3">No items logged yet for today.</p>';
+                    return;
+                }
+
+                currentDayLog.items.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'p-3 bg-slate-50 rounded-lg flex justify-between items-center text-sm mb-2';
+                    itemEl.innerHTML = `
+                        <div>
+                            <span class="font-medium text-slate-700">${item.name}</span>
+                            <p class="text-xs text-slate-500">
+                                ${item.calories} kcal, ${item.sodium} mg Na, ${item.sugar} g Sug
+                            </p>
+                        </div>
+                        <button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12.56 0c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                        </button>
+                    `;
+                    itemEl.querySelector('.remove-item-btn').addEventListener('click', removeItem);
+                    container.appendChild(itemEl);
+                });
+            });
+        };
+
+        const removeItem = (event) => {
+            const index = parseInt(event.currentTarget.dataset.index);
+            const currentDayLog = dailyLogs[today];
+            if (!currentDayLog) return;
+
+            const removedItem = currentDayLog.items.splice(index, 1)[0];
+            if (removedItem) {
+                currentDayLog.totals.calories -= removedItem.calories;
+                currentDayLog.totals.sodium -= removedItem.sodium;
+                currentDayLog.totals.sugar -= removedItem.sugar;
+            }
+            saveData();
+            renderLoggedItems();
+            updateTodaySummary();
+            renderWeeklyChart(); 
+            renderMonthlyChart();
+        };
+
+        foodForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const foodItem = document.getElementById('foodItem').value;
+            const calories = parseInt(document.getElementById('calories').value);
+            const sodium = parseInt(document.getElementById('sodium').value);
+            const sugar = parseInt(document.getElementById('sugar').value);
+
+            if (!foodItem || isNaN(calories) || isNaN(sodium) || isNaN(sugar)) {
+                alert('Please fill in all fields correctly.');
+                return;
+            }
+            
+            const currentDayLog = dailyLogs[today];
+             if (!currentDayLog) { 
+                dailyLogs[today] = { items: [], totals: { calories: 0, sodium: 0, sugar: 0 } };
+            }
+
+            dailyLogs[today].items.push({ name: foodItem, calories, sodium, sugar });
+            dailyLogs[today].totals.calories += calories;
+            dailyLogs[today].totals.sodium += sodium;
+            dailyLogs[today].totals.sugar += sugar;
+
+            saveData();
+            updateTodaySummary();
+            renderLoggedItems();
+            foodForm.reset();
+            
+            renderWeeklyChart(); 
+            renderMonthlyChart();
+        });
+
+        const getPastDaysData = (numDays) => {
+            const data = [];
+            for (let i = 0; i < numDays; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                data.push(dailyLogs[dateString] || { totals: { calories: 0, sodium: 0, sugar: 0 }, date: dateString });
+            }
+            return data.reverse();
+        };
+
+        const renderWeeklyChart = () => {
+            const weeklyData = getPastDaysData(7);
+            const labels = weeklyData.map(d => new Date(d.date || getTodayDateString()).toLocaleDateString('en-US', { weekday: 'short' }));
+            
+            const caloriesData = weeklyData.map(d => d.totals.calories);
+            const sodiumData = weeklyData.map(d => d.totals.sodium);
+            const sugarData = weeklyData.map(d => d.totals.sugar);
+
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+            weeklyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Calories (kcal)', data: caloriesData, backgroundColor: 'rgba(249, 115, 22, 0.6)', borderColor: 'rgb(249, 115, 22)', borderWidth: 1 },
+                        { label: 'Sodium (mg)', data: sodiumData, backgroundColor: 'rgba(14, 165, 233, 0.6)', borderColor: 'rgb(14, 165, 233)', borderWidth: 1 },
+                        { label: 'Sugar (g)', data: sugarData, backgroundColor: 'rgba(236, 72, 153, 0.6)', borderColor: 'rgb(236, 72, 153)', borderWidth: 1 }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top' }}}
+            });
+        };
+
+        const renderMonthlyChart = () => {
+            const monthlyData = getPastDaysData(30);
+            const labels = monthlyData.map(d => new Date(d.date || getTodayDateString()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+            const caloriesData = monthlyData.map(d => d.totals.calories);
+            const sodiumData = monthlyData.map(d => d.totals.sodium);
+            const sugarData = monthlyData.map(d => d.totals.sugar);
+
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChartInstance) monthlyChartInstance.destroy();
+            monthlyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Calories (kcal)', data: caloriesData, borderColor: 'rgb(249, 115, 22)', tension: 0.1, fill: false },
+                        { label: 'Sodium (mg)', data: sodiumData, borderColor: 'rgb(14, 165, 233)', tension: 0.1, fill: false },
+                        { label: 'Sugar (g)', data: sugarData, borderColor: 'rgb(236, 72, 153)', tension: 0.1, fill: false }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top' }}}
+            });
+        };
+        
+        const renderYearlyChart = () => {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const currentMonthIndex = new Date().getMonth();
+            
+            const aggregatedMonthlyData = months.map((month, index) => {
+                let totalCalories = 0, totalSodium = 0, totalSugar = 0;
+                let daysInMonthWithLogs = 0;
+                const currentYear = new Date().getFullYear();
+
+                for (const dateKey in dailyLogs) {
+                    const logDate = new Date(dateKey);
+                    if (logDate.getFullYear() === currentYear && logDate.getMonth() === index) {
+                        totalCalories += dailyLogs[dateKey].totals.calories;
+                        totalSodium += dailyLogs[dateKey].totals.sodium;
+                        totalSugar += dailyLogs[dateKey].totals.sugar;
+                        daysInMonthWithLogs++;
+                    }
+                }
+                // Return average daily intake for the month if logs exist
+                return {
+                    calories: daysInMonthWithLogs > 0 ? Math.round(totalCalories / daysInMonthWithLogs) : 0,
+                    sodium: daysInMonthWithLogs > 0 ? Math.round(totalSodium / daysInMonthWithLogs) : 0,
+                    sugar: daysInMonthWithLogs > 0 ? Math.round(totalSugar / daysInMonthWithLogs) : 0,
+                };
+            });
+            
+            // Show only up to the current month or months with data
+            let lastMonthWithData = -1;
+            for(let i=aggregatedMonthlyData.length-1; i>=0; i--) {
+                if(aggregatedMonthlyData[i].calories > 0 || aggregatedMonthlyData[i].sodium > 0 || aggregatedMonthlyData[i].sugar > 0) {
+                    lastMonthWithData = i;
+                    break;
+                }
+            }
+            const displayUpToMonthIndex = Math.max(currentMonthIndex, lastMonthWithData);
+
+            const labels = months.slice(0, displayUpToMonthIndex + 1);
+            const caloriesData = aggregatedMonthlyData.slice(0, displayUpToMonthIndex + 1).map(d => d.calories);
+            const sodiumData = aggregatedMonthlyData.slice(0, displayUpToMonthIndex + 1).map(d => d.sodium);
+            const sugarData = aggregatedMonthlyData.slice(0, displayUpToMonthIndex + 1).map(d => d.sugar);
+
+            const ctx = document.getElementById('yearlyChart').getContext('2d');
+            if (yearlyChartInstance) yearlyChartInstance.destroy();
+            yearlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Avg Daily Calories (kcal)', data: caloriesData, backgroundColor: 'rgba(249, 115, 22, 0.6)' },
+                        { label: 'Avg Daily Sodium (mg)', data: sodiumData, backgroundColor: 'rgba(14, 165, 233, 0.6)' },
+                        { label: 'Avg Daily Sugar (g)', data: sugarData, backgroundColor: 'rgba(236, 72, 153, 0.6)' }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Average Daily Intake per Month'}}}
+            });
+        };
+
+        const setupTabNavigation = () => {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.add('hidden'));
+
+                    button.classList.add('active');
+                    const tabId = button.dataset.tab + 'ChartView';
+                    const activeTabContent = document.getElementById(tabId);
+                    if (activeTabContent) {
+                         activeTabContent.classList.remove('hidden');
+                    }
+                   
+                    if (button.dataset.tab === 'daily') {
+                        renderLoggedItems(); // ensure the daily log in the tab is also up-to-date
+                    }
+                    if (button.dataset.tab === 'weekly') renderWeeklyChart();
+                    if (button.dataset.tab === 'monthly') renderMonthlyChart();
+                    if (button.dataset.tab === 'yearly') renderYearlyChart();
+                });
+            });
+        };
+
+    </script>
+</body>
+</html>
